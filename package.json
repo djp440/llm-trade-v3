@@ -1,0 +1,26 @@
+{
+  "name": "llm-trade-v3",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "return233",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "nodemon index.ts"
+  },
+  "dependencies": {
+    "ccxt": "^4.5.32",
+    "chalk": "^5.6.2",
+    "dayjs": "^1.11.19",
+    "dotenv": "^17.2.3",
+    "nodemon": "^3.1.11",
+    "openai": "^6.16.0",
+    "toml": "^3.0.0",
+    "winston": "^3.19.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.8"
+  }
+}

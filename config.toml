@@ -1,0 +1,8 @@
+[candle]
+micro_interval = "4h"
+trade_interval = "1d"
+macro_interval = "1w"
+
+micro_interval_count = 28
+trade_interval_count = 30
+macro_interval_count = 24
