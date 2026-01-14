@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import toml from 'toml';
 import dotenv from 'dotenv';
+import logger from './logger';
 
 // 加载 .env 文件
 dotenv.config();
@@ -32,9 +33,20 @@ export interface EnvConfig {
     };
 }
 
+export interface IndicatorConfig {
+    ema: number;
+}
+
+export interface TradeConfig {
+    paperTrade: boolean;
+    risk: number; // 单笔交易最高风险，单位为%
+}
+
 export interface Config {
     candle: CandleConfig;
     env: EnvConfig;
+    trade: TradeConfig;
+    indicator: IndicatorConfig;
 }
 
 const CONFIG_FILE = path.join(process.cwd(), 'config.toml');
@@ -66,12 +78,31 @@ export function loadConfig(): Config {
             },
         };
 
+        // 解析 llm 配置
+        const llmConfig = tomlConfig.llm || {};
+        const visualModel = llmConfig.visual_model || 'gpt-4o-mini';
+        const simpleAnalysisModel = llmConfig.simple_analysis_model || 'gpt-3.5-turbo';
+        const mainModel = llmConfig.main_model || 'gpt-4o-mini';
+
+        // 解析 indicator 配置
+        const indicatorConfig = tomlConfig.indicator || {};
+        const ema = indicatorConfig.ema || 20;
+        const risk = indicatorConfig.risk || 2;
+        
+        // 组装主配置对象
         return {
             candle: tomlConfig.candle,
             env: envConfig,
+            trade: {
+                paperTrade: tomlConfig.trade?.paper_trade || false,
+                risk,
+            },
+            indicator: {
+                ema,
+            },
         };
     } catch (error) {
-        console.error('Error reading or parsing config:', error);
+        logger.error('读取或解析配置时出错:', error);
         throw error;
     }
 }
