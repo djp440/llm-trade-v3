@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import toml from 'toml';
 import dotenv from 'dotenv';
-import logger from './logger';
+import logger from './logger.js';
 
 // 加载 .env 文件
 dotenv.config();
