@@ -58,7 +58,7 @@ export class OKXExchange {
     /**
      * 发送经过身份验证的请求
      */
-    private async request(method: string, path: string, params: any = null): Promise<any> {
+    public async request(method: string, path: string, params: any = null): Promise<any> {
         const timestamp = new Date().toISOString();
         let requestPath = path;
         let body = '';
@@ -96,6 +96,7 @@ export class OKXExchange {
             const result = await response.json();
 
             if (result.code !== '0') {
+                logger.error(`OKX API 错误详情: ${JSON.stringify(result)}`);
                 throw new Error(`OKX API Error: ${result.msg} (code: ${result.code})`);
             }
 
@@ -146,6 +147,36 @@ export class OKXExchange {
 
         } catch (error) {
             logger.error('初始化 OKX 账户设置时出错:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 下单
+     * @param params 下单参数
+     */
+    async placeOrder(params: any): Promise<any> {
+        try {
+            // OKX API: /api/v5/trade/order
+            const data = await this.request('POST', '/api/v5/trade/order', params);
+            return data;
+        } catch (error) {
+            logger.error('下单失败:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 市价平仓
+     * @param params 平仓参数
+     */
+    async closePosition(params: any): Promise<any> {
+        try {
+            // OKX API: /api/v5/trade/close-position
+            const data = await this.request('POST', '/api/v5/trade/close-position', params);
+            return data;
+        } catch (error) {
+            logger.error('平仓失败:', error);
             throw error;
         }
     }
