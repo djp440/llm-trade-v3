@@ -1,6 +1,6 @@
 [candle]
 micro_interval = "4h"
-trade_interval = "1d"
+trade_interval = "1m" # 填写为1m便于测试
 macro_interval = "1w"
 
 micro_interval_count = 28
