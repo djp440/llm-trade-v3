@@ -6,9 +6,10 @@ import logger from '../util/logger.js';
  * OpenAI 连接封装类
  */
 export class OpenAIConnector {
+    private static instance: OpenAIConnector;
     private client: OpenAI;
 
-    constructor() {
+    private constructor() {
         if (!config.env.llm.apiKey) {
             throw new Error('没有找到OPENAI API KEY');
         }
@@ -17,6 +18,16 @@ export class OpenAIConnector {
             apiKey: config.env.llm.apiKey,
             baseURL: config.env.llm.baseUrl || undefined,
         });
+    }
+
+    /**
+     * 获取 OpenAIConnector 单例实例
+     */
+    public static getInstance(): OpenAIConnector {
+        if (!OpenAIConnector.instance) {
+            OpenAIConnector.instance = new OpenAIConnector();
+        }
+        return OpenAIConnector.instance;
     }
 
     /**
@@ -128,4 +139,4 @@ export class OpenAIConnector {
 }
 
 // 导出单例对象
-export const openaiConnector = new OpenAIConnector();
+export const openaiConnector = OpenAIConnector.getInstance();
