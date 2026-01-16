@@ -8,7 +8,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "start": "nodemon src/index.ts"
+    "start": "nodemon --exec \"node --loader ts-node/esm\" src/index.ts"
   },
   "dependencies": {
     "@types/crypto-js": "^4.2.2",
@@ -22,6 +22,7 @@
     "winston": "^3.19.0"
   },
   "devDependencies": {
-    "@types/node": "^25.0.8"
+    "@types/node": "^25.0.8",
+    "ts-node": "^10.9.2"
   }
 }

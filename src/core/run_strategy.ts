@@ -1,6 +1,7 @@
 import { config } from '../util/config.js';
 import logger from '../util/logger.js';
 import { getCandles } from '../connect/market.js';
+import { parentPort, workerData, isMainThread } from 'worker_threads';
 
 /**
  * 将时间间隔字符串转换为毫秒数
@@ -33,11 +34,12 @@ function getIntervalMs(interval: string): number {
 
 /**
  * 策略主运行循环
+ * @param symbol 交易对名称
  */
-export async function runStrategy() {
+export async function runStrategy(symbol: string) {
     try {
         const tradeInterval = config.candle.trade_interval;
-        logger.info(`启动策略循环，交易周期: ${tradeInterval}`);
+        logger.info(`[${symbol}] 启动策略循环，交易周期: ${tradeInterval}`);
 
         const intervalMs = getIntervalMs(tradeInterval);
 
@@ -62,7 +64,7 @@ export async function runStrategy() {
                 waitTime = intervalMs;
             }
 
-            logger.info(`等待下一次 ${tradeInterval} K线收盘... 预计等待 ${(waitTime / 1000).toFixed(1)} 秒`);
+            logger.info(`[${symbol}] 等待下一次 ${tradeInterval} K线收盘... 预计等待 ${(waitTime / 1000).toFixed(1)} 秒`);
 
             await new Promise(resolve => setTimeout(resolve, waitTime));
 
@@ -70,38 +72,71 @@ export async function runStrategy() {
             try {
 
                 // TODO: 在这里调用分析模块和交易模块
+                logger.info(`[${symbol}] 开始执行策略分析...`);
+                // 调用交易逻辑函数
+                await strategyCore(symbol);
 
-
-
-
-
-                logger.info(`策略周期 ${tradeInterval} 执行完毕`);
+                logger.info(`[${symbol}] 策略周期 ${tradeInterval} 执行完毕`);
             } catch (err) {
-                logger.error('策略执行周期内发生错误:', err);
+                logger.error(`[${symbol}] 策略执行周期内发生错误:`, err);
                 // 出错后不中断循环，继续下一次
             }
         }
 
     } catch (error) {
-        logger.error('策略主循环发生致命错误:', error);
+        logger.error(`[${symbol}] 策略主循环发生致命错误:`, error);
         process.exit(1);
     }
 }
 
+async function strategyCore(symbol: string) {
+    logger.info(`[${symbol}] 开始执行交易主逻辑.`);
+    // 获取k线周期配置参数
+    const microInterval = config.candle.micro_interval;
+    const tradeInterval = config.candle.trade_interval;
+    const macroInterval = config.candle.macro_interval;
+    const microIntervalCount = config.candle.micro_interval_count;
+    const tradeIntervalCount = config.candle.trade_interval_count;
+    const macroIntervalCount = config.candle.macro_interval_count;
+
+    const microCandles: Candle[] = [];
+    const tradeCandles: Candle[] = [];
+    const macroCandles: Candle[] = [];
+
+    //一次性获取所有k线数据
+    try{
+        const [microCandles, tradeCandles, macroCandles] = await Promise.all([
+            getCandles(symbol, microInterval, microIntervalCount),
+            getCandles(symbol, tradeInterval, tradeIntervalCount),
+            getCandles(symbol, macroInterval, macroIntervalCount)
+        ]);
+    }catch(err){
+        logger.error(`[${symbol}] 获取k线数据失败，跳过本轮收盘:`, err);
+    }
+
+
+
+}
+
 // 如果直接运行此文件
 import { fileURLToPath } from 'url';
+import { Candle } from '../model/candle.js';
 const isMainModule = process.argv[1] === fileURLToPath(import.meta.url);
 
-if (isMainModule) {
-    runStrategy();
-} else {
-    // Debugging why it didn't run
-    // console.log('Not main module:', process.argv[1], fileURLToPath(import.meta.url));
-    // For now, let's force run it if we suspect the check is failing during development
-    // Or just leave it as is if I fix the check.
-
-    // Attempting to run anyway if the file path matches end of argv[1]
-    if (process.argv[1].endsWith('run_strategy.ts')) {
-        runStrategy();
+if (!isMainThread) {
+    // Worker 线程模式
+    const { symbol } = workerData;
+    if (symbol) {
+        runStrategy(symbol);
+    } else {
+        logger.error('Worker 线程未接收到 symbol 参数');
+    }
+} else if (isMainModule) {
+    // 命令行直接运行模式
+    const symbol = process.argv[2] || config.trade.symbols[0];
+    if (symbol) {
+        runStrategy(symbol);
+    } else {
+        logger.error('未指定 symbol，且配置中无默认 symbol');
     }
 }
