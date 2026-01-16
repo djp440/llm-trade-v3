@@ -38,6 +38,7 @@ function getIntervalMs(interval: string): number {
 
   switch (unit) {
     case "m":
+    case "M":
       return value * 60 * 1000;
     case "h":
     case "H":

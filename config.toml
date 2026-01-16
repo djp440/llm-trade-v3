@@ -1,7 +1,7 @@
 [candle]
 macro_interval = "15m" 
 micro_interval = "1m" 
-trade_interval = "5m" # 填写为1m便于测试
+trade_interval = "5m" #下单时使用的周期
 
 image_candle_count = 200 # 图像k线数量用于指定绘制k线图表的k线数量，周期与trade_interval一致
 macro_interval_count = 24 
@@ -12,7 +12,7 @@ trade_interval_count = 30
 level = 3 # 杠杆倍数
 paper_trade = true 
 risk = 2 # 单笔交易最高风险，单位为%
-symbols = ["ETH-USDT-SWAP"] # 要运行的交易对  
+symbols = ["ETH-USDT-SWAP"] # 要运行的交易对      
 [indicator]
 ema = 20
 

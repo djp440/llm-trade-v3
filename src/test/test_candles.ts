@@ -1,19 +1,21 @@
+
 import { getCandles } from '../connect/market.js';
 import logger from '../util/logger.js';
+import {config} from '../util/config.js';
 
 async function testCandles() {
     try {
-        const instId = 'BTC-USDT-SWAP';
-        const bar = '1m';
-        
+        const instId = config.trade.symbols[0];
+        const bar = config.candle.trade_interval;
+        const count = 10;
         logger.info(`开始测试获取 ${instId} 的 ${bar} K线数据...`);
         
-        const candles = await getCandles(instId, bar, 5);
+        const candles = await getCandles(instId, bar, count);
         
         logger.info(`成功获取 ${candles.length} 条K线数据`);
         
         if (candles.length > 0) {
-            logger.info('最新 5 条K线详情:');
+            logger.info(`最新 ${count} 条K线详情:`);
             candles.forEach((candle, index) => {
                 logger.info(`[${index + 1}] ${candle.toString()}`);
             });
