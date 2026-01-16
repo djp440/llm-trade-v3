@@ -1,4 +1,4 @@
-import OpenAI from 'openai';
+import { OpenAI } from 'openai';
 import { config } from '../util/config.js';
 import logger from '../util/logger.js';
 

@@ -12,12 +12,16 @@
   },
   "dependencies": {
     "@types/crypto-js": "^4.2.2",
+    "canvas": "^3.2.1",
     "chalk": "^5.6.2",
     "crypto-js": "^4.2.0",
     "dayjs": "^1.11.19",
     "dotenv": "^17.2.3",
+    "echarts": "^6.0.0",
+    "lightweight-charts": "5.1",
     "nodemon": "^3.1.11",
     "openai": "^6.16.0",
+    "puppeteer": "^24.35.0",
     "toml": "^3.0.0",
     "winston": "^3.19.0"
   },

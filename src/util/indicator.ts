@@ -25,6 +25,18 @@ export function calculateEMA(data: (number | Candle)[], period: number = 20): (n
         }
     });
 
+    // 检测是否为 K 线数据且时间为倒序 (最新 -> 最旧)
+    let isReversed = false;
+    if (data.length > 1 && typeof data[0] !== 'number' && typeof data[data.length - 1] !== 'number') {
+        const first = data[0] as Candle;
+        const last = data[data.length - 1] as Candle;
+        if (first.ts > last.ts) {
+            isReversed = true;
+            // 反转价格数组，使其按时间正序排列 (旧 -> 新)，以便正确计算 EMA
+            prices.reverse();
+        }
+    }
+
     const emaValues: (number | null)[] = new Array(prices.length).fill(null);
     const k = 2 / (period + 1);
 
@@ -40,10 +52,15 @@ export function calculateEMA(data: (number | Candle)[], period: number = 20): (n
     for (let i = period; i < prices.length; i++) {
         const price = prices[i];
         const prevEMA = emaValues[i - 1]!;
-        
+
         // EMA = Price(t) * k + EMA(y) * (1 - k)
         const ema = (price * k) + (prevEMA * (1 - k));
         emaValues[i] = ema;
+    }
+
+    // 如果之前反转了数据，计算完成后需要将结果反转回来，确保与输入数组一一对应
+    if (isReversed) {
+        emaValues.reverse();
     }
 
     return emaValues;
