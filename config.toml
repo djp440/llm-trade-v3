@@ -1,28 +1,28 @@
 [candle]
-micro_interval = "1m"
-trade_interval = "5m"  # 填写为1m便于测试
-macro_interval = "15m"
+macro_interval = "15m" 
+micro_interval = "1m" 
+trade_interval = "5m" # 填写为1m便于测试
 
-micro_interval_count = 28
-trade_interval_count = 30
-image_candle_count = 200  # 图像k线数量用于指定绘制k线图表的k线数量，周期与trade_interval一致
-macro_interval_count = 24
+image_candle_count = 200 # 图像k线数量用于指定绘制k线图表的k线数量，周期与trade_interval一致
+macro_interval_count = 24 
+micro_interval_count = 28 
+trade_interval_count = 30 
 
 [trade]
-paper_trade = true
-risk = 2                                     # 单笔交易最高风险，单位为%
-level = 3                                    # 杠杆倍数
-symbols = ["BTC-USDT-SWAP", "ETH-USDT-SWAP"] # 要运行的交易对
+level = 3 # 杠杆倍数
+paper_trade = true 
+risk = 2 # 单笔交易最高风险，单位为%
+symbols = ["ETH-USDT-SWAP"] # 要运行的交易对 
 [indicator]
 ema = 20
 
 [llm]
-visual_model = "google/gemma-3-27b-it"
-simple_analysis_model = "openai/gpt-oss-120b"
-risk_analysis_model = "openai/gpt-oss-120b"
-main_model = "openai/gpt-oss-120b"
-temperature = 0.3
-reasoning_effort = "high"                     # none|low|medium|high
+main_model = "openai/gpt-oss-120b" 
+reasoning_effort = "high" # none|low|medium|high
+risk_analysis_model = "openai/gpt-oss-120b" 
+simple_analysis_model = "openai/gpt-oss-120b" 
+temperature = 0.3 
+visual_model = "google/gemma-3-27b-it" 
 
 [system_prompt]
 # 视觉分析模型
@@ -44,6 +44,7 @@ YYYY-MM-DD HH:mm:ss至YYYY-MM-DD HH:mm:ss [时间周期] 价格行为描述，�
 # 数据分析模型
 simple_analysis = """
 你是一位精通威科夫理论(Wyckoff)与价格行为学(Price Action)的资深量化分析师。你将接收OHLCV数据及技术指标数据。
+数据使用 T,O,H,L,C,V,E 作为表头，其中T为时间戳，O为开盘价，H为最高价，L为最低价，C为收盘价，V为成交量，E为EMA。
 
 **分析逻辑（严格执行）：**
 1.  **全局背景 (威科夫)**：利用完整数据判定当前处于威科夫的哪个相位（吸筹/派发/加价/降价），识别交易区间(TR)与关键事件(PS, SC, AR, ST, Spring, UT)。

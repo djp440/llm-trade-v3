@@ -8,12 +8,13 @@ import logger from './logger.js';
 dotenv.config();
 
 export interface CandleConfig {
-    micro_interval: string;
-    trade_interval: string;
-    macro_interval: string;
-    micro_interval_count: number;
-    trade_interval_count: number;
-    macro_interval_count: number;
+  micro_interval: string;
+  trade_interval: string;
+  macro_interval: string;
+  micro_interval_count: number;
+  trade_interval_count: number;
+  macro_interval_count: number;
+  image_candle_count: number;
 }
 
 export interface EnvConfig {
