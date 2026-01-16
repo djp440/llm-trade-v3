@@ -12,7 +12,7 @@ console.log('EMA3 Result:', ema3);
 
 // Test case 2: Candle objects
 console.log('\n--- Test 2: Candle objects, period 3 ---');
-const candles = await getCandles('BTC-USDT-SWAP', '1H', '40');
+const candles = await getCandles('BTC-USDT-SWAP', '1H', 40);
 console.log('Candles length:', candles);
 const ema3Candles = calculateEMA(candles, 20);
 console.log('EMA3 (Candles) Result:', ema3Candles);

@@ -8,7 +8,7 @@ async function testCandles() {
         
         logger.info(`开始测试获取 ${instId} 的 ${bar} K线数据...`);
         
-        const candles = await getCandles(instId, bar, '5');
+        const candles = await getCandles(instId, bar, 5);
         
         logger.info(`成功获取 ${candles.length} 条K线数据`);
         

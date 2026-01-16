@@ -73,7 +73,7 @@ export async function runStrategy() {
 
                 // 1. 获取刚刚收盘的那根 K 线数据
                 // 至少获取3根才能获取到刚刚收盘的那根k线
-                const candles = await getCandles(symbol, tradeInterval, '3');
+                const candles = await getCandles(symbol, tradeInterval, 3);
                 if (candles && candles.length > 0) {
                     logger.info(`获取到 ${symbol} 最新收盘的K线: ${candles[1].toString()}`);
                 }

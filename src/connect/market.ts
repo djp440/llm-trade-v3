@@ -57,13 +57,14 @@ export async function getInstruments(instType: string, uly?: string, instId?: st
  * @param before 请求此时间戳之后的数据（不包含）
  * @returns Candle 对象数组
  */
-export async function getCandles(instId: string, bar: string = '1m', limit: string = '100', after?: string, before?: string): Promise<Candle[]> {
+export async function getCandles(instId: string, bar: string = '1m', limit: number = 100, after?: string, before?: string): Promise<Candle[]> {
+    const str_limit = limit.toString();
     try {
         const exchange = OKXExchange.getInstance();
         const params: any = {
             instId,
             bar,
-            limit
+            str_limit
         };
 
         if (after) {
