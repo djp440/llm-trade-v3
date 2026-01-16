@@ -4,6 +4,26 @@ import dayjs from 'dayjs';
 import path from 'path';
 import fs from 'fs';
 
+// 定义支持的颜色枚举
+export enum LogColor {
+    Red = 'red',
+    Green = 'green',
+    Yellow = 'yellow',
+    Blue = 'blue',
+    Magenta = 'magenta',
+    Cyan = 'cyan',
+    White = 'white',
+    Gray = 'gray',
+    Black = 'black',
+    RedBright = 'redBright',
+    GreenBright = 'greenBright',
+    YellowBright = 'yellowBright',
+    BlueBright = 'blueBright',
+    MagentaBright = 'magentaBright',
+    CyanBright = 'cyanBright',
+    WhiteBright = 'whiteBright',
+}
+
 // 确保 logs 目录存在
 const logsDir = path.resolve(process.cwd(), 'logs');
 if (!fs.existsSync(logsDir)) {
@@ -24,11 +44,20 @@ const colors = {
 };
 
 // 自定义控制台输出格式
-const consoleFormat = winston.format.printf(({ level, message, timestamp }) => {
+const consoleFormat = winston.format.printf(({ level, message, timestamp, color }) => {
     const colorizer = colors[level as keyof typeof colors] || chalk.white;
     const timeStr = chalk.gray(`[${timestamp}]`);
     const levelStr = colorizer(level.toUpperCase().padEnd(7));
-    return `${timeStr} ${levelStr}: ${message}`;
+    
+    let finalMessage = message;
+    if (color && typeof color === 'string') {
+        const chalkColor = (chalk as any)[color];
+        if (typeof chalkColor === 'function') {
+            finalMessage = chalkColor(message);
+        }
+    }
+    
+    return `${timeStr} ${levelStr}: ${finalMessage}`;
 });
 
 // 自定义文件输出格式（不包含颜色代码）
