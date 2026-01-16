@@ -121,7 +121,7 @@ export async function runStrategy(symbol: string) {
 }
 
 //======================================================================================
-
+// TODO: 修复dataAnalysis的时间轴幻觉
 /**
  * 交易主逻辑
  * @param symbol 交易对名称
