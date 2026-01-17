@@ -68,6 +68,32 @@ export async function analyzeRisk(symbol: string, candels: Candle[]) {
   } else {
     positionText = `当前无${symbol}的持仓。\n`;
   }
+
+  // 获取止损单信息
+  let slText = ``;
+  try {
+    const algoOrders = await okxExchange.getPendingAlgoOrders(symbol, "oco");
+    const conditionalOrders = await okxExchange.getPendingAlgoOrders(
+      symbol,
+      "conditional",
+    );
+    const allOrders = [...algoOrders, ...conditionalOrders];
+
+    const slOrders = allOrders.filter(
+      (order: any) => order.slTriggerPx && parseFloat(order.slTriggerPx) > 0,
+    );
+
+    if (slOrders.length > 0) {
+      // 可能有多个止损单，列出所有
+      const slPrices = slOrders.map((o: any) => o.slTriggerPx).join(", ");
+      slText = `当前存在的止损单触发价格为: ${slPrices}。\n`;
+    } else {
+      slText = `当前未设置止损单。\n`;
+    }
+  } catch (e) {
+    slText = `获取止损单信息失败。\n`;
+  }
+
   // 计算ATR
   const atrValues = calculateATRPercentage(
     candels,
@@ -75,7 +101,7 @@ export async function analyzeRisk(symbol: string, candels: Candle[]) {
   );
   const atrText = `当前ATR系列值为${atrValues}。\n`;
   // 组合分析文本
-  const analysisText = balanceText + positionText + atrText;
+  const analysisText = balanceText + positionText + slText + atrText;
 
   const analysis = openaiConnector.chat(
     config.system_prompt.risk_analysis,

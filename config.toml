@@ -1,29 +1,29 @@
 [candle]
-macro_interval = "15m" 
-micro_interval = "1m" 
-trade_interval = "5m" #下单时使用的周期
+macro_interval = "1D" 
+micro_interval = "1H" 
+trade_interval = "4H" #下单时使用的周期
 
-image_candle_count = 200 # 图像k线数量用于指定绘制k线图表的k线数量，周期与trade_interval一致
-macro_interval_count = 24 
-micro_interval_count = 28 
-trade_interval_count = 30 
+image_candle_count = 400 # 图像k线数量用于指定绘制k线图表的k线数量，周期与trade_interval一致
+macro_interval_count = 90 
+micro_interval_count = 90 
+trade_interval_count = 90 
 
 [trade]
-level = 3 # 杠杆倍数
+level = 5 # 杠杆倍数
 paper_trade = true 
-risk = 2 # 单笔交易最高风险，单位为%
-symbols = ["ETH-USDT-SWAP"] # 要运行的交易对                  
+risk = 3 # 单笔交易最高风险，单位为%
+symbols = ["BTC-USDT-SWAP"] # 要运行的交易对                       
 [indicator]
-atr_period = 50 # ATR周期
+atr_period = 30 # ATR周期
 ema = 20 # EMA周期
 
 [llm]
-main_model = "google/gemma-3-27b-it" 
-reasoning_effort = "high" # none|low|medium|high
-risk_analysis_model = "google/gemma-3-27b-it" 
-simple_analysis_model = "google/gemma-3-27b-it" 
-temperature = 0.1 
-visual_model = "google/gemma-3-27b-it" 
+main_model = "google/gemini-3-flash-preview" 
+reasoning_effort = "medium" # none|low|medium|high
+risk_analysis_model = "google/gemini-3-flash-preview" 
+simple_analysis_model = "google/gemini-3-flash-preview" 
+temperature = 0.2 
+visual_model = "google/gemini-3-flash-preview" 
 
 [system_prompt]
 # 视觉分析模型
@@ -77,7 +77,7 @@ risk_analysis = """
 **输出格式要求（严格区分持仓状态）：**
 
 **情况A：有持仓**
-\t当前账户权益为[数值]usdt，可用余额为[数值]usdt，当前账户维持保证金率[数值]%，[交易对][持仓状态/盈亏/爆仓价]，ATR波动率状态[降低/升高/无显著变化]，[操作建议：如扩大止损/降低仓位/观望]。风险等级评估：[低/中/高]风险。
+\t当前账户权益为[数值]usdt，可用余额为[数值]usdt，当前账户维持保证金率[数值]%，[交易对][持仓状态/盈亏/爆仓价]，当前止损价[数值]，ATR波动率状态[降低/升高/无显著变化]，[操作建议：如扩大止损/降低仓位/观望]。风险等级评估：[低/中/高]风险。
 
 **情况B：无持仓**
 \t当前账户权益为[数值]usdt，可用余额为[数值]usdt，ATR波动率状态[降低/升高/无显著变化]，[操作建议：如扩大止损/降低仓位/观望]。风险等级评估：[低/中/高]风险。
