@@ -21,7 +21,7 @@ export async function analyzeImage(interval: string, imageUrl: string) {
   const analysis = await openaiConnector.analyzeImage(
     systemPrompt,
     userPrompt,
-    imageUrl
+    imageUrl,
   );
   return analysis;
 }
@@ -36,7 +36,7 @@ export async function analyzeImage(interval: string, imageUrl: string) {
 export async function analyzeOHLCV(
   interval: string,
   ohlcv: Candle[],
-  ema: (number | null)[]
+  ema: (number | null)[],
 ) {
   const systemPrompt = config.system_prompt.simple_analysis;
   const formatData = formatCandlesWithEma(ohlcv, ema);
@@ -49,7 +49,7 @@ export async function analyzeOHLCV(
   const analysis = await openaiConnector.chat(
     systemPrompt,
     userPrompt,
-    config.llm.simple_analysis_model
+    config.llm.simple_analysis_model,
   );
   return analysis;
 }
@@ -59,7 +59,7 @@ export async function analyzeOHLCV(
  * @param symbol 交易对
  * @returns 分析结果
  */
-export async function analyzeRisk(symbol: string,candels:Candle[]) {
+export async function analyzeRisk(symbol: string, candels: Candle[]) {
   //获取余额
   const balance = await okxExchange.getBalance();
   const total = balance.getTotal();
@@ -75,7 +75,10 @@ export async function analyzeRisk(symbol: string,candels:Candle[]) {
     positionText = `当前无${symbol}的持仓。\n`;
   }
   // 计算ATR
-  const atrValues = calculateATRPercentage(candels, config.indicator.atr_period);
+  const atrValues = calculateATRPercentage(
+    candels,
+    config.indicator.atr_period,
+  );
   const atrText = `当前ATR系列值为${atrValues}。\n`;
   // 组合分析文本
   const analysisText = balanceText + positionText + atrText;
@@ -83,16 +86,19 @@ export async function analyzeRisk(symbol: string,candels:Candle[]) {
   const analysis = openaiConnector.chat(
     config.system_prompt.risk_analysis,
     analysisText,
-    config.llm.risk_analysis_model
+    config.llm.risk_analysis_model,
   );
 
   return analysis;
 }
 
 export async function decision(all_analysis: string) {
+  const userprompt =
+    `请根据以下分析内容进行最终决策，用户设置的单笔风险为${config.trade.risk}%。\n` +
+    all_analysis;
   const decision = await openaiConnector.chatWithJson(
     config.system_prompt.main,
-    all_analysis
+    userprompt,
   );
   return decision;
 }

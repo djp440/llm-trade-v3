@@ -9,7 +9,7 @@ import {
   analyzeOHLCV,
   analyzeRisk,
   decision,
-} from "./strategy_functions.js";
+} from "./analyze_functions.js";
 
 // 获取k线周期配置参数
 const microInterval = config.candle.micro_interval;
@@ -120,8 +120,6 @@ export async function runStrategy(symbol: string) {
   }
 }
 
-//======================================================================================
-// TODO: 修复dataAnalysis的时间轴幻觉
 /**
  * 周期配置类型
  */
@@ -260,9 +258,6 @@ riskAnalysis:
     throw err;
   }
 }
-
-
-//======================================================================================
 
 // 如果直接运行此文件
 import { fileURLToPath } from "url";
