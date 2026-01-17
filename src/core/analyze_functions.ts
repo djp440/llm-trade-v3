@@ -2,6 +2,7 @@ import { config } from "../util/config.js";
 import { openaiConnector } from "../connect/openai.js";
 import { formatCandlesWithEma } from "../util/format.js";
 import { Candle } from "../model/candle.js";
+import { LLMAnalysisResult } from "../model/llm_result.js";
 import { okxExchange, OKXExchange } from "../connect/exchange.js";
 import { calculateATRPercentage } from "../util/indicator.js";
 
@@ -37,7 +38,7 @@ export async function analyzeOHLCV(
 ) {
   const systemPrompt = config.system_prompt.simple_analysis;
   const formatData = formatCandlesWithEma(ohlcv, ema);
-  const userPrompt = `以下为${interval}周期的ohlcv+ema数据。\n`+formatData;
+  const userPrompt = `以下为${interval}周期的ohlcv+ema数据。\n` + formatData;
 
   const analysis = await openaiConnector.chat(
     systemPrompt,
@@ -85,13 +86,15 @@ export async function analyzeRisk(symbol: string, candels: Candle[]) {
   return analysis;
 }
 
-export async function decision(all_analysis: string) {
+export async function decision(
+  all_analysis: string,
+): Promise<LLMAnalysisResult> {
   const userprompt =
     `请根据以下分析内容进行最终决策，用户设置的单笔风险为${config.trade.risk}%。\n` +
     all_analysis;
-  const decision = await openaiConnector.chatWithJson(
+  const decisionJson = await openaiConnector.chatWithJson(
     config.system_prompt.main,
     userprompt,
   );
-  return decision;
+  return new LLMAnalysisResult(decisionJson);
 }

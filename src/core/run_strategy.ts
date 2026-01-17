@@ -90,7 +90,7 @@ export async function runStrategy(symbol: string) {
         `[${symbol}] 等待下一次 ${tradeInterval} K线收盘... 预计等待 ${(
           waitTime / 1000
         ).toFixed(1)} 秒`,
-        { color: LogColor.Blue }
+        { color: LogColor.Blue },
       );
 
       await new Promise(resolve => setTimeout(resolve, waitTime));
@@ -103,6 +103,8 @@ export async function runStrategy(symbol: string) {
         });
         // 调用分析函数
         const decisionResult = await getDecision(symbol);
+        // 调用交易函数
+        await trade(symbol, decisionResult);
 
         logger.info(`[${symbol}] 策略周期 ${tradeInterval} 执行完毕`, {
           color: LogColor.Blue,
@@ -146,11 +148,13 @@ async function analyzeInterval(
   symbol: string,
   config: IntervalConfig,
   candles: Candle[],
-  imageCandleCount: number
+  imageCandleCount: number,
 ): Promise<IntervalAnalysisResult> {
   const { interval, count } = config;
 
-  logger.info(`[${symbol}] 开始分析${interval}周期数据...`, { color: "yellow" });
+  logger.info(`[${symbol}] 开始分析${interval}周期数据...`, {
+    color: "yellow",
+  });
 
   // 计算 EMA 和绘制图表可以并行
   const ema = calculateEMA(candles, emaPeriod);
@@ -192,12 +196,12 @@ async function getDecision(symbol: string) {
 
   // ========== 第一阶段：并行获取所有 K 线数据 ==========
   let candlesMap: Map<string, Candle[]>;
-  
+
   try {
     const candlesResults = await Promise.all(
-      intervalConfigs.map((config) =>
-        getCandles(symbol, config.interval, config.count + imageCandleCount)
-      )
+      intervalConfigs.map(config =>
+        getCandles(symbol, config.interval, config.count + imageCandleCount),
+      ),
     );
 
     // 剔除首个未收盘的 K 线，并存入 Map
@@ -206,7 +210,7 @@ async function getDecision(symbol: string) {
         const candles = candlesResults[index];
         candles.shift(); // 剔除未收盘数据
         return [config.name, candles];
-      })
+      }),
     );
   } catch (err) {
     logger.error(`[${symbol}] 获取K线数据失败，跳过本轮收盘:`, err);
@@ -216,26 +220,46 @@ async function getDecision(symbol: string) {
   // ========== 第二阶段：并行分析所有周期 + 账户风险 ==========
   try {
     // 🚀 关键优化：所有分析任务完全并行执行
-    const [microResult, tradeResult, macroResult, riskAnalysis] = await Promise.all([
-      analyzeInterval(symbol, intervalConfigs[0], candlesMap.get("micro")!, imageCandleCount),
-      analyzeInterval(symbol, intervalConfigs[1], candlesMap.get("trade")!, imageCandleCount),
-      analyzeInterval(symbol, intervalConfigs[2], candlesMap.get("macro")!, imageCandleCount),
-      analyzeRisk(symbol,candlesMap.get("trade")!), // 风险分析也并行执行
-    ]);
+    const [microResult, tradeResult, macroResult, riskAnalysis] =
+      await Promise.all([
+        analyzeInterval(
+          symbol,
+          intervalConfigs[0],
+          candlesMap.get("micro")!,
+          imageCandleCount,
+        ),
+        analyzeInterval(
+          symbol,
+          intervalConfigs[1],
+          candlesMap.get("trade")!,
+          imageCandleCount,
+        ),
+        analyzeInterval(
+          symbol,
+          intervalConfigs[2],
+          candlesMap.get("macro")!,
+          imageCandleCount,
+        ),
+        analyzeRisk(symbol, candlesMap.get("trade")!), // 风险分析也并行执行
+      ]);
 
     // 格式化并输出结果
     const analysisResults = [microResult, tradeResult, macroResult];
-    
+
     for (const result of analysisResults) {
       const formatted = formatAnalysisResult(result);
-      logger.info(`[${symbol}] ${result.interval}周期分析结果:\n${formatted}`, { color: "green" });
+      logger.info(`[${symbol}] ${result.interval}周期分析结果:\n${formatted}`, {
+        color: "green",
+      });
     }
 
     const riskAnalysisText = `\`\`\`yaml
 riskAnalysis:
   ${riskAnalysis}
 \`\`\``;
-    logger.info(`[${symbol}] 账户风险分析结果:\n${riskAnalysisText}`, { color: "green" });
+    logger.info(`[${symbol}] 账户风险分析结果:\n${riskAnalysisText}`, {
+      color: "green",
+    });
 
     // ========== 第三阶段：最终决策 ==========
     const allAnalysis = [
@@ -245,14 +269,12 @@ riskAnalysis:
 
     logger.info(`[${symbol}] 进行最终决策...`, { color: "yellow" });
     const decisionResult = await decision(allAnalysis);
-    
-    logger.info(
-      `[${symbol}] 本轮最终决策: ${JSON.stringify(decisionResult, null, 2)}`,
-      { color: "green" }
-    );
+
+    logger.info(`[${symbol}] 本轮最终决策: ${decisionResult.toString()}`, {
+      color: "green",
+    });
 
     return decisionResult;
-    
   } catch (err) {
     logger.error(`[${symbol}] 分析过程失败:`, err);
     throw err;
@@ -263,6 +285,7 @@ riskAnalysis:
 import { fileURLToPath } from "url";
 import { Candle } from "../model/candle.js";
 import { color } from "echarts/types/dist/core";
+import { trade } from "./trade_functions.js";
 const isMainModule = process.argv[1] === fileURLToPath(import.meta.url);
 
 if (!isMainThread) {
