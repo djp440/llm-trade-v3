@@ -256,9 +256,9 @@ async function getDecision(symbol: string) {
   });
   const riskAnalysis = await analyzeRisk(symbol);
   const riskAnalysisText = `
-  \`\`\`yaml\n
-  riskAnalysis:\n
-  \t${riskAnalysis}\n
+  \`\`\`yaml
+  riskAnalysis:
+  \t${riskAnalysis}
   \`\`\`
   `;
   logger.info(`[${symbol}] 账户风险分析结果: \n${riskAnalysisText}`, {
