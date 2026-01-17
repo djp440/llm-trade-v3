@@ -4,6 +4,8 @@ import { getCandles } from "../connect/market.js";
 import { parentPort, workerData, isMainThread } from "worker_threads";
 import { drawKLineChartLWC } from "../util/draw_lwc.js";
 import { calculateEMA } from "../util/indicator.js";
+import { withRetry } from "../util/retry.js";
+import { trade } from "./trade_functions.js";
 import {
   analyzeImage,
   analyzeOHLCV,
@@ -102,9 +104,17 @@ export async function runStrategy(symbol: string) {
           color: LogColor.Blue,
         });
         // 调用分析函数
-        const decisionResult = await getDecision(symbol);
+        const decisionResult = await withRetry(() => getDecision(symbol), {
+          maxRetries: 3,
+          delay: 2000,
+          context: `${symbol} 策略分析`,
+        });
         // 调用交易函数
-        await trade(symbol, decisionResult);
+        await withRetry(() => trade(symbol, decisionResult), {
+          maxRetries: 5,
+          delay: 2000,
+          context: `${symbol} 下单交易`,
+        });
 
         logger.info(`[${symbol}] 策略周期 ${tradeInterval} 执行完毕`, {
           color: LogColor.Blue,
@@ -285,7 +295,7 @@ riskAnalysis:
 import { fileURLToPath } from "url";
 import { Candle } from "../model/candle.js";
 import { color } from "echarts/types/dist/core";
-import { trade } from "./trade_functions.js";
+// import { trade } from "./trade_functions.js"; // 已移动到顶部引用
 const isMainModule = process.argv[1] === fileURLToPath(import.meta.url);
 
 if (!isMainThread) {
