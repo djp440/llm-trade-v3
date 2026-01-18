@@ -10,7 +10,7 @@ trade_interval_count = 90
 
 [trade]
 level = 5 # 杠杆倍数
-paper_trade = true 
+paper_trade = false 
 risk = 3 # 单笔交易最高风险，单位为%
 symbols = ["BTC-USDT-SWAP"] # 要运行的交易对                        
 [indicator]
