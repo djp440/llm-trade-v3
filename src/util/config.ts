@@ -51,6 +51,8 @@ export interface LlmModelConfig {
   simple_analysis_model: string;
   risk_analysis_model: string;
   main_model: string;
+  compress_llm: string;
+  max_compress: number;
   temperature: number;
   reasoning_effort: string;
 }
@@ -66,6 +68,7 @@ export interface Config {
     simple_analysis: string;
     risk_analysis: string;
     main: string;
+    compress: string;
   };
 }
 
@@ -106,6 +109,8 @@ export function loadConfig(): Config {
       risk_analysis_model:
         tomlConfig.llm?.risk_analysis_model || "gpt-3.5-turbo",
       main_model: tomlConfig.llm?.main_model || "gpt-4o-mini",
+      compress_llm: tomlConfig.llm?.compress_llm || "gpt-3.5-turbo",
+      max_compress: tomlConfig.llm?.max_compress || 42,
       temperature: tomlConfig.llm?.temperature || 0.2,
       reasoning_effort: tomlConfig.llm?.reasoning_effort || "medium",
     };
@@ -116,6 +121,7 @@ export function loadConfig(): Config {
       simple_analysis: tomlConfig.system_prompt?.simple_analysis || "",
       risk_analysis: tomlConfig.system_prompt?.risk_analysis || "",
       main: tomlConfig.system_prompt?.main || "",
+      compress: tomlConfig.system_prompt?.compress || "",
     };
 
     // 解析 indicator 配置

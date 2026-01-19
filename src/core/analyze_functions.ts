@@ -5,6 +5,7 @@ import { Candle } from "../model/candle.js";
 import { LLMAnalysisResult } from "../model/llm_result.js";
 import { okxExchange, OKXExchange } from "../connect/exchange.js";
 import { calculateATRPercentage } from "../util/indicator.js";
+import { readHistory } from "../util/history_manager.js";
 
 /**
  * 分析图像
@@ -109,8 +110,17 @@ export async function analyzeRisk(symbol: string, candels: Candle[]) {
 export async function decision(
   all_analysis: string,
 ): Promise<LLMAnalysisResult> {
+  // 读取历史记录
+  const history = readHistory();
+  let historyText = "";
+  if (history) {
+    historyText = `\n\n### 历史决策记录 (供参考，按时间从旧到新):\n${history}\n`;
+  }
+
   const userprompt =
     `请根据以下分析内容进行最终决策，用户设置的单笔风险为${config.trade.risk}%。\n` +
+    historyText +
+    `\n### 当前分析报告:\n` +
     all_analysis;
   const decisionJson = await openaiConnector.chatWithJson(
     config.system_prompt.main,
@@ -118,3 +128,27 @@ export async function decision(
   );
   return new LLMAnalysisResult(decisionJson);
 }
+
+/**
+ * 压缩决策记录
+ * @param all_analysis 所有的分析内容
+ * @param decisionResult 最终决策结果
+ */
+export async function compressDecision(
+  all_analysis: string,
+  decisionResult: LLMAnalysisResult,
+): Promise<string> {
+  const systemPrompt = config.system_prompt.compress;
+  const userPrompt = `请根据以下详细分析和最终决策，生成一条精简的压缩记录。\n\n分析内容:\n${all_analysis}\n\n最终决策:\n${decisionResult.toString()}`;
+
+  const compressed = await openaiConnector.chat(
+    systemPrompt,
+    userPrompt,
+    config.llm.compress_llm,
+  );
+
+  // 添加时间戳
+  const now = new Date().toISOString().replace("T", " ").slice(0, 16);
+  return `${now} ${compressed}`;
+}
+

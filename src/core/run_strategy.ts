@@ -11,7 +11,9 @@ import {
   analyzeOHLCV,
   analyzeRisk,
   decision,
+  compressDecision,
 } from "./analyze_functions.js";
+import { appendHistory } from "../util/history_manager.js";
 
 // 获取k线周期配置参数
 const microInterval = config.candle.micro_interval;
@@ -283,6 +285,16 @@ riskAnalysis:
     logger.info(`[${symbol}] 本轮最终决策: ${decisionResult.toString()}`, {
       color: "green",
     });
+
+    // 异步执行决策压缩和记录保存
+    compressDecision(allAnalysis, decisionResult)
+      .then((compressed) => {
+        appendHistory(compressed);
+        logger.info(`[${symbol}] 决策记录已压缩保存: ${compressed}`);
+      })
+      .catch((err) => {
+        logger.error(`[${symbol}] 决策压缩保存失败:`, err);
+      });
 
     return decisionResult;
   } catch (err) {
