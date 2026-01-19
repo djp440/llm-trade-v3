@@ -7,67 +7,84 @@ import { Candle } from "../model/candle.js";
  *
  * @param data 数值数组或K线数组
  * @param period 周期，默认为20
- * @returns EMA数组，长度与输入数组相同。由于EMA需要累积计算，数据越长越准确。
- *          前 period-1 个数据通常作为预热，计算出的EMA可能不准确或为null/0。
- *          此处实现：前 period-1 个点返回 null (为了保持数组长度一致)，第 period 个点使用 SMA 作为初始值。
+ * @returns EMA数组，长度与输入数组相同。
  */
 export function calculateEMA(
   data: (number | Candle)[],
   period: number = 20,
 ): (number | null)[] {
   if (!data || data.length < period) {
-    // 数据长度不足以计算
     return new Array(data.length).fill(null);
   }
 
-  const prices: number[] = data.map(item => {
-    if (typeof item === "number") {
-      return item;
-    } else {
-      return item.close;
-    }
-  });
-
-  // 检测是否为 K 线数据且时间为倒序 (最新 -> 最旧)
-  let isReversed = false;
-  if (
-    data.length > 1 &&
-    typeof data[0] !== "number" &&
-    typeof data[data.length - 1] !== "number"
-  ) {
-    const first = data[0] as Candle;
-    const last = data[data.length - 1] as Candle;
-    if (first.ts > last.ts) {
-      isReversed = true;
-      // 反转价格数组，使其按时间正序排列 (旧 -> 新)，以便正确计算 EMA
-      prices.reverse();
-    }
-  }
-
-  const emaValues: (number | null)[] = new Array(prices.length).fill(null);
+  const length = data.length;
+  const emaValues: (number | null)[] = new Array(length).fill(null);
   const k = 2 / (period + 1);
 
-  // 1. 计算第一个 EMA 值 (通常使用前 N 个周期的 SMA 作为起始 EMA)
-  let sum = 0;
-  for (let i = 0; i < period; i++) {
-    sum += prices[i];
-  }
-  const initialSMA = sum / period;
-  emaValues[period - 1] = initialSMA;
-
-  // 2. 计算后续的 EMA 值
-  for (let i = period; i < prices.length; i++) {
-    const price = prices[i];
-    const prevEMA = emaValues[i - 1]!;
-
-    // EMA = Price(t) * k + EMA(y) * (1 - k)
-    const ema = price * k + prevEMA * (1 - k);
-    emaValues[i] = ema;
+  // 检测是否为 K 线数据且时间为倒序 (最新 -> 最旧)
+  // 如果是倒序，我们需要从后往前遍历来模拟时间正序计算
+  let isReversed = false;
+  if (
+    length > 1 &&
+    typeof data[0] !== "number" &&
+    typeof data[length - 1] !== "number"
+  ) {
+    const first = data[0] as Candle;
+    const last = data[length - 1] as Candle;
+    if (first.ts > last.ts) {
+      isReversed = true;
+    }
   }
 
-  // 如果之前反转了数据，计算完成后需要将结果反转回来，确保与输入数组一一对应
-  if (isReversed) {
-    emaValues.reverse();
+  // 获取价格的辅助函数
+  const getPrice = (i: number): number => {
+    const item = data[i];
+    return typeof item === "number" ? item : item.close;
+  };
+
+  // 根据顺序确定遍历方向
+  // 正序(旧->新): 0 -> length-1
+  // 倒序(新->旧): length-1 -> 0
+  
+  // 我们统一逻辑：计算时总是按时间旧->新进行。
+  // 如果输入是倒序 (index 0 是最新)，那么时间旧的数据在 index = length-1。
+  // 此时我们需要从 length-1 开始计算到 0。
+
+  if (!isReversed) {
+    // 正序处理 (0 是最旧)
+    let sum = 0;
+    for (let i = 0; i < period; i++) {
+      sum += getPrice(i);
+    }
+    let prevEMA = sum / period;
+    emaValues[period - 1] = prevEMA;
+
+    for (let i = period; i < length; i++) {
+      const price = getPrice(i);
+      prevEMA = price * k + prevEMA * (1 - k);
+      emaValues[i] = prevEMA;
+    }
+  } else {
+    // 倒序处理 (length-1 是最旧)
+    // 1. 计算初始 SMA (使用最旧的 period 个数据)
+    // 最旧的数据在 length-1, length-2 ... 
+    // 例如 length=100, period=20. 最旧的是 99. 
+    // 初始窗口是 [99, 98, ..., 80] (共20个)
+    let sum = 0;
+    for (let i = 0; i < period; i++) {
+      sum += getPrice(length - 1 - i);
+    }
+    let prevEMA = sum / period;
+    // 记录位置：对应的是窗口中最新的那个点，即 length - period (例如 80)
+    emaValues[length - period] = prevEMA;
+
+    // 2. 后续计算
+    // 从 length - period - 1 往 0 走
+    for (let i = length - period - 1; i >= 0; i--) {
+      const price = getPrice(i);
+      prevEMA = price * k + prevEMA * (1 - k);
+      emaValues[i] = prevEMA;
+    }
   }
 
   return emaValues;
@@ -100,50 +117,78 @@ export function calculateATR(
     return new Array(data.length).fill(null);
   }
 
-  // 处理排序
-  let sortedData = [...data];
+  const length = data.length;
+  const atrValues: (number | null)[] = new Array(length).fill(null);
+  const trValues: number[] = new Array(length).fill(0);
+
+  // 检测顺序
   let isReversed = false;
   if (data.length > 1 && data[0].ts > data[data.length - 1].ts) {
     isReversed = true;
-    sortedData.reverse();
   }
 
-  const trValues: number[] = new Array(sortedData.length).fill(0);
+  // 1. 计算 TR
+  if (!isReversed) {
+    // 正序 (0 是最旧)
+    trValues[0] = data[0].high - data[0].low;
+    for (let i = 1; i < length; i++) {
+      const high = data[i].high;
+      const low = data[i].low;
+      const prevClose = data[i - 1].close;
+      trValues[i] = Math.max(
+        high - low,
+        Math.abs(high - prevClose),
+        Math.abs(low - prevClose)
+      );
+    }
+    
+    // 2. 计算 ATR
+    // 首个 ATR 是前 period 个 TR 的 SMA
+    let sumTR = 0;
+    for (let i = 0; i < period; i++) {
+      sumTR += trValues[i];
+    }
+    let currentATR = sumTR / period;
+    atrValues[period - 1] = currentATR;
 
-  // 1. 计算 TR (True Range)
-  // 第一个 TR 只能是 High - Low
-  trValues[0] = sortedData[0].high - sortedData[0].low;
-  for (let i = 1; i < sortedData.length; i++) {
-    const high = sortedData[i].high;
-    const low = sortedData[i].low;
-    const prevClose = sortedData[i - 1].close;
+    // Wilder's Smoothing
+    for (let i = period; i < length; i++) {
+      currentATR = (currentATR * (period - 1) + trValues[i]) / period;
+      atrValues[i] = currentATR;
+    }
 
-    trValues[i] = Math.max(
-      high - low,
-      Math.abs(high - prevClose),
-      Math.abs(low - prevClose),
-    );
-  }
+  } else {
+    // 倒序 (length-1 是最旧)
+    // 最旧的点 TR 无法参考前一个收盘价(因为它没有更旧的了)，所以只能 H-L
+    // data[length-1] 是最旧
+    trValues[length - 1] = data[length - 1].high - data[length - 1].low;
+    
+    // 从 length-2 往 0 遍历
+    for (let i = length - 2; i >= 0; i--) {
+      const high = data[i].high;
+      const low = data[i].low;
+      const prevClose = data[i + 1].close; // 前一天是 i+1
+      trValues[i] = Math.max(
+        high - low,
+        Math.abs(high - prevClose),
+        Math.abs(low - prevClose)
+      );
+    }
 
-  const atrValues: (number | null)[] = new Array(sortedData.length).fill(null);
+    // 2. 计算 ATR
+    // 初始 SMA: [length-1, ..., length-period]
+    let sumTR = 0;
+    for (let i = 0; i < period; i++) {
+      sumTR += trValues[length - 1 - i];
+    }
+    let currentATR = sumTR / period;
+    atrValues[length - period] = currentATR;
 
-  // 2. 第一个 ATR 是前 period 个 TR 的平均值 (SMA)
-  let sumTR = 0;
-  for (let i = 0; i < period; i++) {
-    sumTR += trValues[i];
-  }
-  let currentATR = sumTR / period;
-  atrValues[period - 1] = currentATR;
-
-  // 3. 后续 ATR 使用 Wilder's Smoothing
-  // ATR_t = (ATR_prev * (period - 1) + TR_t) / period
-  for (let i = period; i < sortedData.length; i++) {
-    currentATR = (currentATR * (period - 1) + trValues[i]) / period;
-    atrValues[i] = currentATR;
-  }
-
-  if (isReversed) {
-    atrValues.reverse();
+    // Wilder's Smoothing: 从 length - period - 1 往 0
+    for (let i = length - period - 1; i >= 0; i--) {
+      currentATR = (currentATR * (period - 1) + trValues[i]) / period;
+      atrValues[i] = currentATR;
+    }
   }
 
   return atrValues;

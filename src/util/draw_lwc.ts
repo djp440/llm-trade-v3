@@ -1,9 +1,10 @@
-import path from 'path';
-import fs from 'fs';
 import dayjs from 'dayjs';
 import { Candle } from '../model/candle.js';
 import logger from './logger.js';
-import { getBrowser } from './puppeteer_instance.js';
+import { getSharedPage } from './puppeteer_instance.js';
+
+// Mutex to ensure chart generation is serialized on the shared page
+let chartMutex = Promise.resolve();
 
 /**
  * 使用 Lightweight Charts 生成 K 线图图片
@@ -39,23 +40,14 @@ export async function drawKLineChartLWC(
     }
 
     // 转换数据为 LWC 格式
-    // LWC 时间需要是 string (YYYY-MM-DD) 或 timestamp (seconds)
-    // 这里使用 timestamp (seconds)
     const candleData = plotCandles.map(c => ({
-        time: c.ts / 1000, // LWC uses seconds for unix timestamp
+        time: c.ts / 1000,
         open: c.open,
         high: c.high,
         low: c.low,
         close: c.close
     }));
 
-    const volumeData = plotCandles.map(c => ({
-        time: c.ts / 1000,
-        value: c.vol,
-        color: c.close > c.open ? '#00da3c' : '#ec0000' // 匹配 draw.ts 的颜色
-    }));
-
-    // EMA 数据，过滤掉 null
     const lineData = plotEma.map((val, index) => {
         if (val === null) return null;
         return {
@@ -64,65 +56,45 @@ export async function drawKLineChartLWC(
         };
     }).filter(item => item !== null);
 
-    let page;
-    try {
-        const browser = await getBrowser();
-        page = await browser.newPage();
+    // 等待锁
+    const previousMutex = chartMutex;
+    let releaseMutex: () => void;
+    // 创建新的锁 Promise，并保存 resolve 函数
+    const newMutex = new Promise<void>(resolve => { releaseMutex = resolve; });
+    // 更新全局锁，让下一个请求等待这个 newMutex
+    chartMutex = newMutex.catch(() => { }); // catch to prevent error propagation affecting next caller
 
-        // 设置视口大小
+    try {
+        await previousMutex;
+
+        const page = await getSharedPage();
+
+        // 设置视口大小 (复用页面时可能需要重新设置)
         await page.setViewport({ width, height });
 
-        // 读取 lightweight-charts 库文件内容
-        const lwcPath = path.resolve(process.cwd(), 'node_modules', 'lightweight-charts', 'dist', 'lightweight-charts.standalone.production.js');
-
-        // 构建 HTML 内容
+        // 构建简洁的 HTML 容器
         const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <style>
-                body { margin: 0; padding: 0; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-                #container { width: ${width}px; height: ${height}px; }
-                #period-mark {
-                    position: absolute;
-                    top: 10px;
-                    left: 10px;
-                    z-index: 20;
-                    font-size: 24px;
-                    font-weight: bold;
-                    color: #131722;
-                    background-color: rgba(255, 255, 255, 0.8);
-                    padding: 4px 12px;
-                    border-radius: 4px;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                }
-                #date-range-mark {
-                    position: absolute;
-                    top: 10px;
-                    right: 10px;
-                    z-index: 20;
-                    font-size: 16px;
-                    font-weight: 500;
-                    color: #555;
-                    background-color: rgba(255, 255, 255, 0.8);
-                    padding: 4px 12px;
-                    border-radius: 4px;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                }
-            </style>
-        </head>
-        <body>
-            <div id="container"></div>
-            ${period ? `<div id="period-mark">${period}</div>` : ''}
-            ${dateRangeText ? `<div id="date-range-mark">${dateRangeText}</div>` : ''}
-        </body>
-        </html>
+        <style>
+            body { margin: 0; padding: 0; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+            #container { width: ${width}px; height: ${height}px; }
+            .mark {
+                position: absolute;
+                z-index: 20;
+                font-weight: bold;
+                background-color: rgba(255, 255, 255, 0.8);
+                padding: 4px 12px;
+                border-radius: 4px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            #period-mark { top: 10px; left: 10px; font-size: 24px; color: #131722; }
+            #date-range-mark { top: 10px; right: 10px; font-size: 16px; color: #555; }
+        </style>
+        <div id="container"></div>
+        ${period ? `<div id="period-mark" class="mark">${period}</div>` : ''}
+        ${dateRangeText ? `<div id="date-range-mark" class="mark">${dateRangeText}</div>` : ''}
         `;
 
         await page.setContent(htmlContent);
-
-        // 注入库文件
-        await page.addScriptTag({ path: lwcPath });
 
         // 定义颜色常量
         const UP_COLOR = '#00da3c';
@@ -139,7 +111,12 @@ export async function drawKLineChartLWC(
             const { createChart, CandlestickSeries, LineSeries } = window.LightweightCharts;
 
             const container = document.getElementById('container');
+            // 清理旧图表
+            if (container) container.innerHTML = '';
+
             const chart = createChart(container, {
+                width: 1200,
+                height: 800,
                 layout: {
                     background: { type: 'solid', color: '#ffffff' },
                     textColor: '#333',
@@ -148,27 +125,12 @@ export async function drawKLineChartLWC(
                     vertLines: { color: '#f0f0f0' },
                     horzLines: { color: '#f0f0f0' },
                 },
-                rightPriceScale: {
-                    visible: true,
-                    borderColor: '#d1d4dc',
-                },
-                leftPriceScale: {
-                    visible: true,
-                    borderColor: '#d1d4dc',
-                },
-                timeScale: {
-                    borderColor: '#d1d4dc',
-                    timeVisible: true,
-                    secondsVisible: false,
-                },
-                crosshair: {
-                    // 禁用十字准线 (虽然截图时通常不显示，但显式禁用更安全)
-                    vertLine: { visible: false },
-                    horzLine: { visible: false },
-                },
+                rightPriceScale: { visible: true, borderColor: '#d1d4dc' },
+                leftPriceScale: { visible: true, borderColor: '#d1d4dc' },
+                timeScale: { borderColor: '#d1d4dc', timeVisible: true, secondsVisible: false },
+                crosshair: { vertLine: { visible: false }, horzLine: { visible: false } },
             });
 
-            // 1. K线图 (主图)
             const candlestickSeries = chart.addSeries(CandlestickSeries, {
                 upColor: UP_COLOR,
                 downColor: DOWN_COLOR,
@@ -176,47 +138,38 @@ export async function drawKLineChartLWC(
                 borderDownColor: '#8A0000',
                 wickUpColor: '#008F28',
                 wickDownColor: '#8A0000',
-                // 禁用当前价格线和价格标签
                 priceLineVisible: false,
                 lastValueVisible: false,
             });
             candlestickSeries.setData(candleData);
 
-            // 2. EMA (主图)
             const lineSeries = chart.addSeries(LineSeries, {
                 color: '#2962FF',
                 lineWidth: 2,
                 priceScaleId: 'right',
-                // 禁用当前价格线和价格标签
                 priceLineVisible: false,
                 lastValueVisible: false,
             });
             lineSeries.setData(lineData);
 
-            // 适配内容
             chart.timeScale().fitContent();
         }, candleData, lineData, UP_COLOR, DOWN_COLOR);
 
-        // 截图
-        // 等待一小会儿确保渲染完成 (requestAnimationFrame)
-        // 优化：使用 requestAnimationFrame 确保至少渲染了一帧
+        // 优化：等待渲染完成
         await page.evaluate(() => new Promise<void>(resolve => {
-            requestAnimationFrame(() => setTimeout(resolve, 50));
+            requestAnimationFrame(() => setTimeout(resolve, 30));
         }));
 
         const element = await page.$('#container');
         if (!element) throw new Error('Container not found');
 
         const base64Buffer = await element.screenshot({ encoding: 'base64' });
-
         return base64Buffer;
 
     } catch (error) {
         logger.error('Error generating LWC chart:', error);
         throw error;
     } finally {
-        if (page) {
-            await page.close();
-        }
+        if (releaseMutex!) releaseMutex();
     }
 }
