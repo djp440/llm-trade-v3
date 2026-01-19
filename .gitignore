@@ -70,6 +70,10 @@ web_modules/
 .env.*
 !.env.example
 
+# Configuration files
+config.toml
+!config.example.toml
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache
