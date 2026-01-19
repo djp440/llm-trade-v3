@@ -73,6 +73,7 @@ export interface Config {
 }
 
 const CONFIG_FILE = path.join(process.cwd(), "config.toml");
+const PROMPTS_FILE = path.join(process.cwd(), "prompts.toml");
 
 /**
  * 读取并解析 config.toml 配置文件，并合并环境变量
@@ -82,6 +83,10 @@ export function loadConfig(): Config {
     // 读取 TOML 配置
     const fileContent = fs.readFileSync(CONFIG_FILE, "utf-8");
     const tomlConfig = toml.parse(fileContent);
+
+    // 读取 Prompts 配置
+    const promptsContent = fs.readFileSync(PROMPTS_FILE, "utf-8");
+    const promptsConfig = toml.parse(promptsContent);
 
     // 组装环境变量配置
     const envConfig: EnvConfig = {
@@ -117,11 +122,11 @@ export function loadConfig(): Config {
 
     // 解析 system_prompt 配置
     const systemPrompt = {
-      visual: tomlConfig.system_prompt?.visual || "",
-      simple_analysis: tomlConfig.system_prompt?.simple_analysis || "",
-      risk_analysis: tomlConfig.system_prompt?.risk_analysis || "",
-      main: tomlConfig.system_prompt?.main || "",
-      compress: tomlConfig.system_prompt?.compress || "",
+      visual: promptsConfig.visual || "",
+      simple_analysis: promptsConfig.simple_analysis || "",
+      risk_analysis: promptsConfig.risk_analysis || "",
+      main: promptsConfig.main || "",
+      compress: promptsConfig.compress || "",
     };
 
     // 解析 indicator 配置
