@@ -36,7 +36,11 @@ npm install
     cp .env.example .env
     ```
 2.  编辑 `.env` 文件，填入 API Key 等敏感信息。
-3.  编辑 `config.toml` 文件，调整交易参数与模型配置：
+3.  复制并编辑配置文件：
+    ```bash
+    cp config.example.toml config.toml
+    ```
+4.  编辑 `config.toml` 文件，调整交易参数与模型配置：
     *   `[candle]`：设置 K 线周期（如 1H, 4H, 1D）。
     *   `[trade]`：设置交易对、杠杆倍数、风险比例。
     *   `[llm]`：选择使用的大模型及其参数。
