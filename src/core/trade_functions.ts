@@ -8,9 +8,9 @@ import {
 } from "../connect/trade.js";
 
 export async function trade(symbol: string, decisionResult: LLMAnalysisResult) {
-  logger.info(`[${symbol}] 交易决策：${decisionResult.toString()}`, {
-    color: LogColor.Green,
-  });
+  // logger.info(`[${symbol}] 交易决策：${decisionResult.toString()}`, {
+  //   color: LogColor.Green,
+  // });
 
   const { action, quantity, stopLoss } = decisionResult;
 
@@ -57,7 +57,7 @@ export async function trade(symbol: string, decisionResult: LLMAnalysisResult) {
       case "EXIT_SHORT":
         await closeAllPositions(symbol);
         break;
-      
+
       case "UPDATE_STOP_LOSS":
         if (stopLoss) {
           await updateStopLoss(symbol, stopLoss.toString());
