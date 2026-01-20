@@ -3,6 +3,7 @@ import { openaiConnector } from "../connect/openai.js";
 import { formatCandlesWithEma } from "../util/format.js";
 import { Candle } from "../model/candle.js";
 import { LLMAnalysisResult } from "../model/llm_result.js";
+import { BullAnalysisResult, BearAnalysisResult } from "../model/agent_result.js";
 import { okxExchange, OKXExchange } from "../connect/exchange.js";
 import { calculateATRPercentage } from "../util/indicator.js";
 import { readHistory } from "../util/history_manager.js";
@@ -152,3 +153,80 @@ export async function compressDecision(
   return `${now} ${compressed}`;
 }
 
+/**
+ * 专业多头分析
+ * @param all_analysis 综合分析文本
+ */
+export async function analyzeBull(
+  all_analysis: string,
+): Promise<BullAnalysisResult> {
+  const userPrompt = `请基于以下市场分析报告，作为多头方进行分析：\n${all_analysis}`;
+
+  const result = await openaiConnector.chatWithJson(
+    config.system_prompt.bull_agent,
+    userPrompt,
+    config.llm.bull_model
+  );
+  return result as unknown as BullAnalysisResult;
+}
+
+/**
+ * 专业空头分析
+ * @param all_analysis 综合分析文本
+ */
+export async function analyzeBear(
+  all_analysis: string,
+): Promise<BearAnalysisResult> {
+  const userPrompt = `请基于以下市场分析报告，作为空头方进行分析：\n${all_analysis}`;
+
+  const result = await openaiConnector.chatWithJson(
+    config.system_prompt.bear_agent,
+    userPrompt,
+    config.llm.bear_model
+  );
+  return result as unknown as BearAnalysisResult;
+}
+
+/**
+ * 裁决者决策
+ * @param bullResult 多头分析结果
+ * @param bearResult 空头分析结果
+ * @param all_analysis 原始分析文本 (作为背景)
+ */
+export async function arbiterDecision(
+  bullResult: BullAnalysisResult,
+  bearResult: BearAnalysisResult,
+  all_analysis: string
+): Promise<LLMAnalysisResult> {
+  // 读取历史记录
+  const history = readHistory();
+  let historyText = "";
+  if (history) {
+    historyText = `\n\n### 历史决策记录 (供参考，按时间从旧到新):\n${history}\n`;
+  }
+
+  const userPrompt =
+    `请根据以下双方辩论和市场分析进行最终裁决。\n` +
+    `用户设置的单笔风险为 ${config.trade.risk}%。\n\n` +
+    `### 多头观点 (Bull Agent):\n` +
+    `信心分数: ${bullResult.bull_confidence}\n` +
+    `理由: ${bullResult.reason}\n` +
+    `止损建议: ${bullResult.stop_loss}\n` +
+    `情景预测: ${bullResult.scenario_prediction}\n\n` +
+    `### 空头观点 (Bear Agent):\n` +
+    `信心分数: ${bearResult.bear_confidence}\n` +
+    `理由: ${bearResult.reason}\n` +
+    `止损建议: ${bearResult.stop_loss}\n` +
+    `情景预测: ${bearResult.scenario_prediction}\n\n` +
+    historyText +
+    `\n### 原始分析摘要:\n` +
+    all_analysis;
+
+  const decisionJson = await openaiConnector.chatWithJson(
+    config.system_prompt.arbiter_agent,
+    userPrompt,
+    config.llm.arbiter_model
+  );
+
+  return new LLMAnalysisResult(decisionJson);
+}

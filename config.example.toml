@@ -18,11 +18,13 @@ atr_period = 30 # ATR周期
 ema = 20        # EMA周期
 
 [llm]
-main_model = "google/gemini-2.5-flash-lite"
-reasoning_effort = "none"                     # none|low|medium|high
+bull_model = "google/gemini-2.5-flash-lite"
+bear_model = "google/gemini-2.5-flash-lite"
+arbiter_model = "google/gemini-2.5-flash-lite"
+reasoning_effort = "none"                      # none|low|medium|high
 risk_analysis_model = "openai/gpt-oss-120b"
 simple_analysis_model = "openai/gpt-oss-120b"
 temperature = 0.2
 visual_model = "google/gemini-2.5-flash-lite"
 compress_llm = "openai/gpt-oss-120b"
-max_compress = 42                             # 最大压缩次数，超过该次数的内容会被丢弃
+max_compress = 42                              # 最大压缩次数，超过该次数的内容会被丢弃

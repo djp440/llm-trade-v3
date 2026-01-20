@@ -10,7 +10,9 @@ import {
   analyzeImage,
   analyzeOHLCV,
   analyzeRisk,
-  decision,
+  analyzeBull,
+  analyzeBear,
+  arbiterDecision,
   compressDecision,
 } from "./analyze_functions.js";
 import { appendHistory } from "../util/history_manager.js";
@@ -273,14 +275,25 @@ riskAnalysis:
       color: "green",
     });
 
-    // ========== 第三阶段：最终决策 ==========
+    // ========== 第三阶段：多空对抗与最终裁决 ==========
     const allAnalysis = [
       ...analysisResults.map(formatAnalysisResult),
       riskAnalysisText,
     ].join("\n");
 
-    logger.info(`[${symbol}] 进行最终决策...`, { color: "yellow" });
-    const decisionResult = await decision(allAnalysis);
+    logger.info(`[${symbol}] 开始多空对抗分析...`, { color: "yellow" });
+
+    // 并行执行多头和空头分析
+    const [bullResult, bearResult] = await Promise.all([
+      analyzeBull(allAnalysis),
+      analyzeBear(allAnalysis)
+    ]);
+
+    logger.info(`[${symbol}] 多头信心: ${bullResult.bull_confidence}, 理由: ${bullResult.reason.slice(0, 50)}...`, { color: LogColor.Magenta });
+    logger.info(`[${symbol}] 空头信心: ${bearResult.bear_confidence}, 理由: ${bearResult.reason.slice(0, 50)}...`, { color: LogColor.Cyan });
+
+    logger.info(`[${symbol}] 进行最终裁决...`, { color: "yellow" });
+    const decisionResult = await arbiterDecision(bullResult, bearResult, allAnalysis);
 
     logger.info(`[${symbol}] 本轮最终决策: ${decisionResult.toString()}`, {
       color: "green",

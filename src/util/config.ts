@@ -51,6 +51,9 @@ export interface LlmModelConfig {
   simple_analysis_model: string;
   risk_analysis_model: string;
   main_model: string;
+  bull_model: string;
+  bear_model: string;
+  arbiter_model: string;
   compress_llm: string;
   max_compress: number;
   temperature: number;
@@ -69,6 +72,9 @@ export interface Config {
     risk_analysis: string;
     main: string;
     compress: string;
+    bull_agent: string;
+    bear_agent: string;
+    arbiter_agent: string;
   };
 }
 
@@ -114,6 +120,9 @@ export function loadConfig(): Config {
       risk_analysis_model:
         tomlConfig.llm?.risk_analysis_model || "gpt-3.5-turbo",
       main_model: tomlConfig.llm?.main_model || "gpt-4o-mini",
+      bull_model: tomlConfig.llm?.bull_model || tomlConfig.llm?.main_model || "gpt-4o-mini",
+      bear_model: tomlConfig.llm?.bear_model || tomlConfig.llm?.main_model || "gpt-4o-mini",
+      arbiter_model: tomlConfig.llm?.arbiter_model || tomlConfig.llm?.main_model || "gpt-4o-mini",
       compress_llm: tomlConfig.llm?.compress_llm || "gpt-3.5-turbo",
       max_compress: tomlConfig.llm?.max_compress || 42,
       temperature: tomlConfig.llm?.temperature || 0.2,
@@ -127,6 +136,9 @@ export function loadConfig(): Config {
       risk_analysis: promptsConfig.risk_analysis || "",
       main: promptsConfig.main || "",
       compress: promptsConfig.compress || "",
+      bull_agent: promptsConfig.bull_agent || "",
+      bear_agent: promptsConfig.bear_agent || "",
+      arbiter_agent: promptsConfig.arbiter_agent || "",
     };
 
     // 解析 indicator 配置

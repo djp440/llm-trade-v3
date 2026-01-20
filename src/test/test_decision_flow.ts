@@ -9,7 +9,9 @@ import {
   analyzeImage,
   analyzeOHLCV,
   analyzeRisk,
-  decision,
+  analyzeBull,
+  analyzeBear,
+  arbiterDecision,
 } from "../core/analyze_functions.js";
 import { readHistory } from "../util/history_manager.js";
 import { Candle } from "../model/candle.js";
@@ -120,20 +122,19 @@ async function testDecisionFlow(symbol: string) {
       riskAnalysisText,
     ].join("\n");
 
-    const history = readHistory();
-    let historyText = "";
-    if (history) {
-      historyText = `\n\n### 历史决策记录 (供参考，按时间从旧到新):\n${history}\n`;
-    }
+    logger.info(`[${symbol}] 3. 调用 LLM 进行多空对抗与裁决...`);
 
-    const finalUserPrompt =
-      `请根据以下分析内容进行最终决策，用户设置的单笔风险为${config.trade.risk}%。\n` +
-      historyText +
-      `\n### 当前分析报告:\n` +
-      allAnalysis;
+    // 并行执行多头和空头分析
+    const [bullResult, bearResult] = await Promise.all([
+      analyzeBull(allAnalysis),
+      analyzeBear(allAnalysis)
+    ]);
 
-    logger.info(`[${symbol}] 3. 调用 LLM 进行最终决策...`);
-    const decisionResult = await decision(allAnalysis);
+    logger.info(`[${symbol}] 多头信心: ${bullResult.bull_confidence}`);
+    logger.info(`[${symbol}] 空头信心: ${bearResult.bear_confidence}`);
+
+    // 最终裁决
+    const decisionResult = await arbiterDecision(bullResult, bearResult, allAnalysis);
 
     // 4. 记录结果到 output 目录
     const outputDir = path.join(process.cwd(), "output");
@@ -145,14 +146,22 @@ async function testDecisionFlow(symbol: string) {
     const fileName = `decision_test_${symbol}_${timestamp}.md`;
     const filePath = path.join(outputDir, fileName);
 
-    const mdContent = `# 交易决策流程测试报告\n\n` +
+    const mdContent = `# 交易决策流程测试报告 (多Agent版)\n\n` +
       `- **交易对**: ${symbol}\n` +
       `- **测试时间**: ${new Date().toLocaleString()}\n\n` +
-      `## LLM 系统提示词 (System Prompt)\n\n` +
-      `\`\`\`text\n${config.system_prompt.main}\n\`\`\`\n\n` +
-      `## LLM 输入内容 (User Prompt)\n\n` +
-      `${finalUserPrompt}\n\n` +
-      `## LLM 最终决策 (Output)\n\n` +
+      `## 市场分析摘要\n\n` +
+      `${allAnalysis}\n\n` +
+      `## 多头分析 (Bull Agent)\n\n` +
+      `- **信心**: ${bullResult.bull_confidence}\n` +
+      `- **理由**: ${bullResult.reason}\n` +
+      `- **止损**: ${bullResult.stop_loss}\n` +
+      `- **预测**: ${bullResult.scenario_prediction}\n\n` +
+      `## 空头分析 (Bear Agent)\n\n` +
+      `- **信心**: ${bearResult.bear_confidence}\n` +
+      `- **理由**: ${bearResult.reason}\n` +
+      `- **止损**: ${bearResult.stop_loss}\n` +
+      `- **预测**: ${bearResult.scenario_prediction}\n\n` +
+      `## 裁决者决策 (Arbiter)\n\n` +
       `\`\`\`json\n${JSON.stringify(decisionResult, null, 2)}\n\`\`\`\n\n` +
       `---报告生成完毕---`;
 

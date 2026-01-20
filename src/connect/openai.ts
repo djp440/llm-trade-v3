@@ -124,10 +124,14 @@ export class OpenAIConnector {
    * 专门用于主分析模型的 JSON 输出聊天
    * @param systemPrompt 系统提示词
    * @param userPrompt 用户提示词
+   * @param model 使用的模型名称 (默认为 main_model)
    * @returns 解析后的 JSON 对象
    */
-  async chatWithJson(systemPrompt: string, userPrompt: string): Promise<any> {
-    const model = config.llm.main_model;
+  async chatWithJson(
+    systemPrompt: string,
+    userPrompt: string,
+    model: string = config.llm.main_model,
+  ): Promise<any> {
     try {
       const response = await this.client.chat.completions.create({
         model: model,
@@ -139,7 +143,25 @@ export class OpenAIConnector {
         response_format: { type: "json_object" },
       });
 
-      const content = response.choices[0]?.message?.content || "{}";
+      let content = response.choices[0]?.message?.content || "{}";
+
+      // 记录原始响应以便调试
+      if (process.env.NODE_ENV !== 'production' || config.llm.reasoning_effort === 'high') {
+        logger.info(`[OpenAI Raw Response] Model: ${model}\n${content.slice(0, 500)}...`);
+      }
+
+      // 尝试清理 Markdown 代码块标记
+      const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+      if (jsonMatch) {
+        content = jsonMatch[1];
+      } else {
+        // 即使没有匹配到完整的代码块，也尝试去除可能存在的首尾 ```
+        content = content.trim();
+        if (content.startsWith("```")) {
+          content = content.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+        }
+      }
+
       try {
         return JSON.parse(content);
       } catch (e) {
