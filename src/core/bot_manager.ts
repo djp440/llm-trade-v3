@@ -91,15 +91,9 @@ export class BotManager extends EventEmitter {
 
                 logger.info(`正在启动 Worker: ${symbol}`);
 
-                const execArgv = [...process.execArgv];
-                // 如果是 .ts 文件，说明在开发环境运行 (tsx)，需要为 Worker 注入 tsx loader
-                if (extension === '.ts') {
-                    execArgv.push('--import', 'tsx');
-                }
-
                 const worker = new Worker(workerPath, {
                     workerData: { symbol },
-                    execArgv: execArgv
+                    execArgv: process.execArgv
                 });
 
                 worker.on('message', (msg) => {

@@ -130,7 +130,7 @@ export class OpenAIConnector {
   async chatWithJson(
     systemPrompt: string,
     userPrompt: string,
-    model: string = config.llm.main_model,
+    model: string ,
   ): Promise<any> {
     try {
       const response = await this.client.chat.completions.create({
