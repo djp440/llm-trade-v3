@@ -7,6 +7,7 @@ import type { BullAnalysisResult, BearAnalysisResult } from "../model/agent_resu
 import { OKXExchange } from "../connect/exchange.ts";
 import { calculateATRPercentage } from "../util/indicator.ts";
 import { readHistory } from "../util/history_manager.ts";
+import { getTicker } from "../connect/market.ts";
 
 /**
  * 分析图像
@@ -96,8 +97,13 @@ export async function analyzeRisk(symbol: string, candels: Candle[]) {
     slText = `获取止损单信息失败。\n`;
   }
 
+  // 获取当前价格
+  const ticker = await getTicker(symbol);
+  const lastText = `当前价格为${ticker?.last}\n`;
+  
+
   // 组合分析文本
-  const analysisText = balanceText + positionText + slText;
+  const analysisText = balanceText + positionText + slText + lastText;
 
   const analysis = await openaiConnector.chat(
     config.system_prompt.risk_analysis,
