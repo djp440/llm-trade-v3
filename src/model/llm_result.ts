@@ -16,6 +16,7 @@ export interface ILLMAnalysisResultData {
   reason: string;
   stop_loss?: number | null;
   quantity?: number | null;
+  risk_score?: number | null;
 }
 
 /**
@@ -26,6 +27,7 @@ export class LLMAnalysisResult {
   public readonly reason: string;
   public readonly stopLoss: number | null;
   public readonly quantity: number | null;
+  public readonly riskScore: number | null;
   public readonly timestamp: number;
 
   constructor(data: ILLMAnalysisResultData) {
@@ -33,6 +35,7 @@ export class LLMAnalysisResult {
     this.reason = data.reason || "无理由";
     this.stopLoss = typeof data.stop_loss === "number" ? data.stop_loss : null;
     this.quantity = typeof data.quantity === "number" ? data.quantity : null;
+    this.riskScore = typeof data.risk_score === "number" ? data.risk_score : null;
     this.timestamp = Date.now();
 
     this.validateLogic();
@@ -62,7 +65,7 @@ export class LLMAnalysisResult {
    */
   private validateLogic() {
     if (
-      (this.action === "ENTRY_LONG" || this.action === "ENTRY_SHORT") && 
+      (this.action === "ENTRY_LONG" || this.action === "ENTRY_SHORT") &&
       (this.stopLoss === null || this.quantity === null)
     ) {
       logger.warn(
@@ -105,6 +108,9 @@ export class LLMAnalysisResult {
     let details = "";
     if (this.isEntry()) {
       details = `, 数量: ${this.quantity}, 止损: ${this.stopLoss}`;
+    }
+    if (this.riskScore !== null) {
+      details += `, 风险评分: ${this.riskScore}`;
     }
     return `[${this.action}] ${this.reason}${details}`;
   }
