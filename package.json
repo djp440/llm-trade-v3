@@ -9,7 +9,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node --loader ts-node/esm src/index.ts",
-    "dev": "nodemon --exec \"node --loader ts-node/esm\" src/index.ts"
+    "dev": "nodemon --exec \"node --loader ts-node/esm\" src/index.ts",
+    "test:decision": "node --loader ts-node/esm src/test/test_decision_flow.ts"
   },
   "dependencies": {
     "@types/crypto-js": "^4.2.2",
