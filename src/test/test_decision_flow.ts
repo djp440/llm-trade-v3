@@ -148,12 +148,21 @@ async function testDecisionFlow(symbol: string) {
     const mdContent = `# 交易决策流程测试报告\n\n` +
       `- **交易对**: ${symbol}\n` +
       `- **测试时间**: ${new Date().toLocaleString()}\n\n` +
-      `## LLM 系统提示词 (System Prompt)\n\n` +
+      `## 1. 角色配置 (Agents & Prompts)\n\n` +
+      `### 决策发起者 (Proposer)\n` +
+      `- Model: ${config.llm.main_model}\n` +
       `\`\`\`text\n${config.system_prompt.main}\n\`\`\`\n\n` +
-      `## LLM 输入内容 (User Prompt)\n\n` +
+      `### 风控审查员 (Reviewer)\n` +
+      `- Model: ${config.llm.reviewer_model}\n` +
+      `\`\`\`text\n${config.system_prompt.reviewer}\n\`\`\`\n\n` +
+      `### 首席裁决官 (Arbiter)\n` +
+      `- Model: ${config.llm.arbiter_model}\n` +
+      `\`\`\`text\n${config.system_prompt.arbiter}\n\`\`\`\n\n` +
+      `## 2. 初始分析输入 (Initial Analysis Input)\n\n` +
       `${finalUserPrompt}\n\n` +
-      `## LLM 最终决策 (Output)\n\n` +
+      `## 3. 最终裁决结果 (Final Verdict)\n\n` +
       `\`\`\`json\n${JSON.stringify(decisionResult, null, 2)}\n\`\`\`\n\n` +
+      `> 注：完整的三方辩论过程请查看控制台日志。\n\n` +
       `---报告生成完毕---`;
 
     fs.writeFileSync(filePath, mdContent, "utf-8");

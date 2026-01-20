@@ -51,6 +51,8 @@ export interface LlmModelConfig {
   simple_analysis_model: string;
   risk_analysis_model: string;
   main_model: string;
+  reviewer_model: string;
+  arbiter_model: string;
   compress_llm: string;
   max_compress: number;
   temperature: number;
@@ -68,6 +70,8 @@ export interface Config {
     simple_analysis: string;
     risk_analysis: string;
     main: string;
+    reviewer: string;
+    arbiter: string;
     compress: string;
   };
 }
@@ -114,6 +118,8 @@ export function loadConfig(): Config {
       risk_analysis_model:
         tomlConfig.llm?.risk_analysis_model || "gpt-3.5-turbo",
       main_model: tomlConfig.llm?.main_model || "gpt-4o-mini",
+      reviewer_model: tomlConfig.llm?.reviewer_model || "gpt-4o-mini",
+      arbiter_model: tomlConfig.llm?.arbiter_model || "gpt-4o-mini",
       compress_llm: tomlConfig.llm?.compress_llm || "gpt-3.5-turbo",
       max_compress: tomlConfig.llm?.max_compress || 42,
       temperature: tomlConfig.llm?.temperature || 0.2,
@@ -126,6 +132,8 @@ export function loadConfig(): Config {
       simple_analysis: promptsConfig.simple_analysis || "",
       risk_analysis: promptsConfig.risk_analysis || "",
       main: promptsConfig.main || "",
+      reviewer: promptsConfig.reviewer || "",
+      arbiter: promptsConfig.arbiter || "",
       compress: promptsConfig.compress || "",
     };
 

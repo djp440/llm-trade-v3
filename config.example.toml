@@ -19,6 +19,8 @@ ema = 20        # EMA周期
 
 [llm]
 main_model = "google/gemini-2.5-flash-lite"
+reviewer_model = "google/gemini-2.5-flash-lite"
+arbiter_model = "google/gemini-2.5-flash-lite"
 reasoning_effort = "none"                     # none|low|medium|high
 risk_analysis_model = "openai/gpt-oss-120b"
 simple_analysis_model = "openai/gpt-oss-120b"

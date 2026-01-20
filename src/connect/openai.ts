@@ -124,10 +124,14 @@ export class OpenAIConnector {
    * 专门用于主分析模型的 JSON 输出聊天
    * @param systemPrompt 系统提示词
    * @param userPrompt 用户提示词
+   * @param model 使用的模型名称 (默认为 main_model)
    * @returns 解析后的 JSON 对象
    */
-  async chatWithJson(systemPrompt: string, userPrompt: string): Promise<any> {
-    const model = config.llm.main_model;
+  async chatWithJson(
+    systemPrompt: string,
+    userPrompt: string,
+    model: string = config.llm.main_model,
+  ): Promise<any> {
     try {
       const response = await this.client.chat.completions.create({
         model: model,

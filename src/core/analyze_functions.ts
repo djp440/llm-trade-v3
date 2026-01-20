@@ -1,4 +1,5 @@
 import { config } from "../util/config.js";
+import logger, { LogColor } from "../util/logger.js";
 import { openaiConnector } from "../connect/openai.js";
 import { formatCandlesWithEma } from "../util/format.js";
 import { Candle } from "../model/candle.js";
@@ -117,16 +118,61 @@ export async function decision(
     historyText = `\n\n### 历史决策记录 (供参考，按时间从旧到新):\n${history}\n`;
   }
 
-  const userprompt =
-    `请根据以下分析内容进行最终决策，用户设置的单笔风险为${config.trade.risk}%。\n` +
+  const baseContext =
+    `请根据以下分析内容进行决策，用户设置的单笔风险为${config.trade.risk}%。\n` +
     historyText +
     `\n### 当前分析报告:\n` +
     all_analysis;
-  const decisionJson = await openaiConnector.chatWithJson(
+
+  // 1. Proposer (决策发起者)
+  logger.info("正在获取 Proposer (决策发起者) 的建议...", {
+    color: LogColor.Cyan,
+  });
+  const proposalJson = await openaiConnector.chatWithJson(
     config.system_prompt.main,
-    userprompt,
+    baseContext,
   );
-  return new LLMAnalysisResult(decisionJson);
+  const proposalResult = new LLMAnalysisResult(proposalJson);
+  logger.info(`Proposer 建议: ${proposalResult.toString()}`, {
+    color: LogColor.Cyan,
+  });
+
+  // 2. Reviewer (风控审查员)
+  logger.info("正在获取 Reviewer (风控审查员) 的审查意见...", {
+    color: LogColor.Magenta,
+  });
+  const reviewContext =
+    baseContext +
+    `\n\n### 决策发起者 (Proposer) 的建议:\n${JSON.stringify(proposalJson, null, 2)}`;
+
+  const reviewJson = await openaiConnector.chatWithJson(
+    config.system_prompt.reviewer,
+    reviewContext,
+  );
+  const reviewResult = new LLMAnalysisResult(reviewJson);
+  logger.info(`Reviewer 意见: ${reviewResult.toString()}`, {
+    color: LogColor.Magenta,
+  });
+
+  // 3. Arbiter (首席裁决官)
+  logger.info("正在获取 Arbiter (首席裁决官) 的最终裁决...", {
+    color: LogColor.Yellow,
+  });
+  const arbiterContext =
+    reviewContext +
+    `\n\n### 风控审查员 (Reviewer) 的审查意见:\n${JSON.stringify(reviewJson, null, 2)}`;
+
+  const arbiterJson = await openaiConnector.chatWithJson(
+    config.system_prompt.arbiter,
+    arbiterContext,
+    config.llm.arbiter_model,
+  );
+  const arbiterResult = new LLMAnalysisResult(arbiterJson);
+  logger.info(`Arbiter 最终裁决: ${arbiterResult.toString()}`, {
+    color: LogColor.Green,
+  });
+
+  return arbiterResult;
 }
 
 /**
