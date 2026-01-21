@@ -63,10 +63,10 @@ export class LLMAnalysisResult {
   private validateLogic() {
     if (
       (this.action === "ENTRY_LONG" || this.action === "ENTRY_SHORT") && 
-      (this.stopLoss === null || this.quantity === null)
+      this.stopLoss === null
     ) {
       logger.warn(
-        `LLM 建议开仓 ${this.action} 但未提供止损或数量，强制转换为 NO_OP`,
+        `LLM 建议开仓 ${this.action} 但未提供止损，强制转换为 NO_OP`,
       );
       // 这里我们无法修改 readonly 属性，但在实际交易逻辑中应检查此情况
       // 或者我们可以抛出错误，或者在 getter 中处理
@@ -89,12 +89,12 @@ export class LLMAnalysisResult {
   }
 
   /**
-   * 检查开仓建议是否有效（必须包含止损和数量）
+   * 检查开仓建议是否有效（必须包含止损）
    */
   isValidEntry(): boolean {
     if (!this.isEntry()) return false;
     return (
-      this.stopLoss !== null && this.quantity !== null && this.quantity > 0
+      this.stopLoss !== null
     );
   }
 

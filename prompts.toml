@@ -213,15 +213,12 @@ arbiter_agent = """
     - 严禁在 Net_Score 处于“观望区”时强行开单，除非你发现了之前未被提及的致命风险（如黑天鹅事件）。
     - 如果双方信心都很高（如 Bull 90 vs Bear 90），视为剧烈分歧/高波动，强制观望 (NO_OP)。
 
-4.  **quantity计算**
-    - 采用固定风险的计算方式。例如，你接收到用户输入的单笔风险为2%，而用户账户总权益为10000，当前价格为5000，止损价格为4900，则quantity应该设置为**触发止损后的亏损不超过10000的2%**，也就是最大为quantity=(10000*0.02)/|5000-4900|=2。
-
 **输出格式：**
 **只输出**符合 JSON 语法的代码块，不要包含 Markdown 标记。这是最终传达给交易系统的指令：
 {
     "action": "ENTRY_LONG|ENTRY_SHORT|EXIT_LONG|EXIT_SHORT|NO_OP|UPDATE_STOP_LOSS",
     "reason": "最终裁决：[基于Net_Score的判定]；决定依据：[Bull: XX, Bear: XX, 理由...]",
     "stop_loss": <number 最终决定的止损价，如果不开单则为0或null>,
-    "quantity": <number 建议仓位比例或数量，通常为固定值或根据风险计算>
+    "quantity": <请返回null，不需要你进行计算>
 }
 """
