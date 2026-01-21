@@ -1,29 +1,38 @@
-import React from 'react';
-import { render } from 'ink';
-import { App } from './ui/App.tsx';
 import logger from './util/logger.ts';
+import { BotManager } from './core/bot_manager.ts';
 
-// 捕获未处理的异常，防止程序直接崩溃
+// 捕获未处理的异常
 process.on('uncaughtException', (err) => {
-    // 这里使用 console.error 可能是因为 logger 可能也会抛错，或者我们希望确保输出
-    // 但为了统一，我们尝试用 logger
-    try {
-        logger.error('Uncaught Exception:', err);
-    } catch (e) {
-        console.error('Uncaught Exception (Logger failed):', err);
-    }
+    logger.error('Uncaught Exception:', err);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-    try {
-        logger.error('Unhandled Rejection:', reason);
-    } catch (e) {
-        console.error('Unhandled Rejection:', reason);
-    }
+    logger.error('Unhandled Rejection:', reason);
 });
 
-// 清屏（可选，为了更好的 UI 体验）
-// console.clear();
+async function main() {
+    const bot = BotManager.getInstance();
+    
+    logger.info('正在启动 LLM Trade Bot V3 (Terminal Mode)...');
+    
+    // 注册退出信号
+    const handleExit = () => {
+        logger.info('接收到退出信号，正在停止...');
+        bot.stop();
+        // 给一点时间让日志写完
+        setTimeout(() => process.exit(0), 500);
+    };
+    
+    process.on('SIGINT', handleExit);
+    process.on('SIGTERM', handleExit);
 
-// 启动 UI
-render(React.createElement(App));
+    try {
+        await bot.start();
+        logger.info('系统已启动。按 Ctrl+C 停止。');
+    } catch (error) {
+        logger.error('启动失败:', error);
+        process.exit(1);
+    }
+}
+
+main();

@@ -7,8 +7,6 @@ import logger from '../util/logger.ts';
 import { OKXExchange } from '../connect/exchange.ts';
 import { OpenAIConnector } from '../connect/openai.ts';
 
-import { logEmitter, LOG_EVENT } from '../util/log_emitter.ts';
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -98,12 +96,7 @@ export class BotManager extends EventEmitter {
                     execArgv: process.execArgv
                 });
 
-                worker.on('message', (msg) => {
-                    // 处理来自 Worker 的日志消息
-                    if (msg && msg.type === 'log' && msg.payload) {
-                        logEmitter.emit(LOG_EVENT, msg.payload);
-                    }
-                });
+
 
                 worker.on('error', (err) => {
                     logger.error(`[Worker ${symbol}] Error:`, err);
