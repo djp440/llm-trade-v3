@@ -1,7 +1,7 @@
 {
-  "name": "llm-trade-v3",
-  "version": "beta-v0.33-cli",
-  "description": "",
+  "name": "omnitrade-ai",
+  "version": "stable-v0.4",
+  "description": "OmniTrade AI 是一款先进的多模态加密货币自主交易系统，融合微观至宏观的多周期市场洞察，利用 LLM 进行视觉与数据双重推理。",
   "license": "ISC",
   "author": "return233",
   "type": "module",
